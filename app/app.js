@@ -840,10 +840,7 @@ async function init() {
   window.addEventListener('hashchange', () => { if (/^#text=/.test(location.hash)) readShared(false); }); // Safari tab already open
   if (q.get('view') === 'call') setView('call');
 
-  try {
-    const res = await fetch('/api/health');
-    state.health = await res.json();
-  } catch { state.health = { xray: false, ai: false }; }
+  state.health = { xray: false, ai: false }; // Static Pages has no backend.
   if (state.report) renderResult();
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
