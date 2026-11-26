@@ -2,10 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { INSTITUTIONS } from '../data/institutions.js';
-import { connectors, huntPlan, serpGoogle, serpSpent } from '../server/connectors.js';
+import { helplineHunt, connectors, huntPlan, serpGoogle, serpSpent } from '../server/connectors.js';
 
 const realFetch = globalThis.fetch;
-const KEYS = ['SERPAPI_KEY', 'SERPAPI_BUDGET', 'BRAVE_API_KEY', 'GOOGLE_PLACES_KEY'];
+const KEYS = ['SEARCHAPI_KEY', 'SERPAPI_KEY', 'SERPAPI_BUDGET', 'BRAVE_API_KEY', 'GOOGLE_PLACES_KEY', 'SERPER_API_KEY'];
 const reply = body => ({ ok: true, status: 200, json: async () => body });
 function fakeSerp(body) {
   globalThis.fetch = async url => (String(url).includes('engine=google_maps') ? reply({ local_results: [] }) : reply(body));
@@ -55,4 +55,37 @@ test('an unofficial phone number in a search result is flagged; the answer is fa
     snippet: 'Call our care line 800 123456 any time' }] });
   const found = await connectors.suspects([enbd], () => {});
   assert.ok(found.some(s => /search result/.test(s.how)), 'expected a suspect from a search result');
+});
+
+test('helpline hunt attaches regulator evidence across channels and leaves unrelated leads unverified', async () => {
+  setKeys({ SEARCHAPI_KEY: 'test' });
+  globalThis.fetch = async url => reply(url.searchParams.get('engine') === 'google_maps'
+    ? { local_results: [{ title: 'Maps lead', phone: '+971 54 759 6133' }] }
+    : { ads: [{ title: 'Advert', phone: '0547596133' }], organic_results: [
+      { title: 'Search lead', snippet: 'Call 054 759 6133' },
+      { title: 'Other lead', phone: '+971 4 316 1700' }] });
+  const { rows } = await helplineHunt(INSTITUTIONS.find(i => i.id === 'fab'));
+  assert.deepEqual(rows.filter(r => r.advisory?.source.en.includes('12 January 2026')).map(r => r.channel), ['Ads','Search','Maps']);
+  assert.equal(rows.find(r => r.title === 'Other lead').advisory, null);
+});
+
+test('ministry hunt scopes the caller warning to the result title and exact phone', async () => {
+  setKeys({ SEARCHAPI_KEY: 'test' });
+  globalThis.fetch = async url => reply(url.searchParams.get('engine') === 'google_maps'
+    ? { local_results: [{ title: 'Unrelated business', phone: '70614213' }] }
+    : { organic_results: [{ title: 'Ministry of Interior', snippet: 'Phone: ٧٠٦١٤٢١٣' }] });
+  const { rows } = await helplineHunt(INSTITUTIONS.find(i => i.id === 'moi'));
+  assert.equal(rows[0].advisory.id, 'moi_reported_caller');
+  assert.equal(rows[1].advisory, null);
+});
+
+test('RAKBANK hunt preserves the full service number and drops incomplete fragments', async () => {
+  setKeys({ SEARCHAPI_KEY: 'test' });
+  globalThis.fetch = async url => reply(url.searchParams.get('engine') === 'google_maps'
+    ? { local_results: [{title: 'RAKBANK Elite', phone: '800 4048'}] }
+    : { organic_results: [{title: 'RAKBANK', snippet: 'Call 600 576 361 or 600 544049. International: +971600576361. Incomplete: 600 576.'}] });
+  const { rows } = await helplineHunt(INSTITUTIONS.find(i => i.id === 'rakbank'));
+  assert.deepEqual(rows.map(row => [row.phone, row.match]), [
+    ['600 576 361', true], ['600 544049', true], ['+971600576361', true], ['800 4048', true]
+  ]);
 });

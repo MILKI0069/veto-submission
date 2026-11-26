@@ -82,3 +82,21 @@ test('engine is fast enough for live calls (< 25 ms per message after warm-up)',
   for (const c of CORPUS) v(c.text, c);
   assert.ok((performance.now() - t0) / CORPUS.length < 25);
 });
+
+test('Gulf and mixed-language requests distinguish money or access demands from safety advice', () => {
+  for (const text of [
+    'عطنا رمز التحقق عشان نلغي الحوالة',
+    'هذا رقمي اليديد. لا تتصل فيني، حول لي ألف درهم بسرعة.',
+    'أنا من UAE PASS support. وافق على الطلب حتى نلغي عملية الدخول.',
+    'مبروك فزت بجائزة، حول رسوم المعاملة لاستلام المبلغ.',
+    'Dubai Police: حول رسوم إلغاء البلاغ حتى لا يتم توقيفك.'
+  ]) assert.ok(['scam', 'high'].includes(v(text).verdict), text);
+
+  for (const text of [
+    'لا تتصل فيني، لا ترسل لي فلوس.',
+    'احذر ممن يقول لك عطنا رمز التحقق.',
+    'هذا رقمي اليديد. كلمني باجر.',
+    'UAE PASS: لا توافق على الطلب إذا لم تبدأ العملية.',
+    'تم دفع رسوم المعاملة. يمكنك تحميل الإيصال.'
+  ]) assert.ok(!['scam', 'high'].includes(v(text).verdict), text);
+});

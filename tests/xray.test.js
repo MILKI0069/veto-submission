@@ -3,6 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
+import { fetchBytes } from '../server/netguard.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectApk } from '../server/apk.js';
@@ -115,4 +117,25 @@ test('phone reputation fields become plain signals', () => {
   assert.ok(v.signals.some(s => s.id === 'voip'));
   assert.ok(v.risk > 0.85);
   assert.equal(phoneVerdict({ fraudScore: 10 }).signals.length, 0);
+});
+
+test('header evidence separates an advertised destination from a 403 and never follows the hop', async t => {
+  const paths = [];
+  const server = http.createServer((req, res) => {
+    paths.push(req.url);
+    if (req.url === '/start') res.writeHead(301, { Location: '/landing?token=private#fragment' });
+    else res.writeHead(403);
+    res.end();
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const origin = `http://fixture.localhost:${server.address().port}`;
+  const options = { demoHosts: true, headersOnly: true };
+  const redirect = await fetchBytes(origin + '/start', options);
+  assert.equal(redirect.status, 301);
+  assert.equal(redirect.destination, origin + '/landing');
+  const denied = await fetchBytes(origin + '/denied', options);
+  assert.equal(denied.status, 403);
+  assert.equal(denied.destination, null);
+  assert.deepEqual(paths, ['/start', '/denied']);
 });

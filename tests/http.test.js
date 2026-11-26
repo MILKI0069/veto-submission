@@ -30,7 +30,7 @@ before(async () => {
   });
 });
 
-after(() => { if (child) child.kill(); });
+after(() => { if (child) child.kill('SIGKILL'); });
 
 const get = p => fetch(base + p);
 const post = (p, body, raw) => fetch(base + p, {
@@ -101,13 +101,24 @@ test('an unknown API path returns a JSON 404, never the app shell', async () => 
   assert.ok(!/at .*\.js:\d+/.test(text), 'the 404 body must not contain a stack trace');
 });
 
-test('an unknown app route returns the app shell (single-page routing), as designed', async () => {
+test('an unknown dashboard route returns 404', async () => {
   const r = await get('/share-' + Date.now());
-  assert.equal(r.status, 200);
-  assert.match(r.headers.get('content-type') || '', /text\/html/);
+  assert.equal(r.status, 404);
 });
 
 test('a missing file with an extension returns 404', async () => {
   const r = await get('/no-such-file-' + Date.now() + '.js');
   assert.equal(r.status, 404);
+});
+
+test('stored case files and exports require officer access before lookup', async () => {
+  const id = '000000000000';
+  const routes = ['/api/dossier/' + id, ...['', '/shot.jpg', '/stix', '/evidence.pdf', '/evidence.zip', '/review'].map(suffix => '/api/case/' + id + suffix)];
+  for (const route of routes) {
+    const response = await fetch(base + route, { headers: { 'x-forwarded-for': '192.0.2.1' } });
+    assert.equal(response.status, 403, route);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal((await response.json()).error, 'console');
+    assert.equal((await get(route)).status, 404, route);
+  }
 });

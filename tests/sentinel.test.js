@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mmh3, shodanFaviconHash, sameImage, hamming64, simhash64, kitPrint, campaignKeys, matchLogos, brandSibling, cloakSignal } from '../server/forensics.js';
 import { campaigns, _resetForTests } from '../server/cases.js';
-import { permutations, scoreSuspect } from '../server/sentinel.js';
+import { permutations, scoreSuspect, listingSuspect } from '../server/sentinel.js';
 import { reportTexts, dossierHtml, stixBundle } from '../server/dossier.js';
 import { checkListing, outgoingCheck, contactsAudit, numberOwner } from '../engine/ledger.js';
 import { INSTITUTIONS } from '../data/institutions.js';
@@ -155,4 +155,43 @@ test('weak shared traces never merge sites, and a campaign states how strong its
   const c = campaigns(strong);
   assert.equal(c.length, 1);
   assert.equal(c[0].confidence, 'high');
+});
+
+test('historical DFSA contact matches exact UAE formats and preserves genuine NBK contact', () => {
+  for (const phone of ['+971 54 759 6133', '00971547596133', '0547596133', '٠٥٤ ٧٥٩ ٦١٣٣']) {
+    const result = checkListing({ name: 'Sidra Capital', phone });
+    assert.equal(result.verdict, 'suspicious');
+    assert.match(result.signals[0].source.en, /12 January 2026/);
+  }
+  assert.equal(checkListing({ phone: '+966 54 759 6133' }).signals.length, 0);
+  const result = checkListing({ name: 'NBK', phone: '+971 4 316 1700' });
+  assert.equal(result.verdict, 'official');
+  assert.equal(result.signals.length, 0);
+  assert.ok(result.positives.some(p => p.source?.url.includes('nbk.com')));
+});
+
+test('official matches retain country codes and accept Arabic digits', () => {
+  assert.equal(numberOwner('+966 600 54 0000'), null);
+  assert.equal(numberOwner('+971 600 54 0000').id, 'enbd');
+  assert.equal(checkListing({ name: 'NBK', phone: '٠٤ ٣١٦ ١٧٠٠' }).verdict, 'official');
+});
+
+test('MOI caller advisory requires both the claimed ministry and exact displayed digits', () => {
+  const check = (phone, name = 'Ministry of Interior') => checkListing({ name, phone });
+  assert.equal(check('+971 800 5000').verdict, 'official');
+  const hit = check('٧٠٦١٤٢١٣');
+  assert.equal(hit.verdict, 'suspicious');
+  assert.equal(hit.signals[0].source.url, 'https://x.com/moiuae/status/2028040738475483569');
+  for (const result of [check('+97170614213'), check('70614213', 'Unrelated help desk')]) {
+    assert.ok(!result.signals.some(signal => signal.id === 'moi_reported_caller'));
+  }
+});
+
+test('reviewed Wio guide is attributed to its publisher only with matching evidence', () => {
+  const guide = { name: 'Wio Bank Business Account UAE', phone: '+971 50 496 3962', website: 'https://www.emirhub.ae/banking/wio/' };
+  assert.equal(checkListing(guide).verdict, 'guide');
+  assert.equal(listingSuspect(guide), null);
+  for (const change of [{name:'Official Wio Customer Support'}, {phone:'0501234567'}, {website:'https://emirhub.ae.example/banking/wio/'}, {text:'Call our Wio customer support desk'}]) {
+    assert.equal(checkListing({...guide, ...change}).verdict, 'fake');
+  }
 });

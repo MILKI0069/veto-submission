@@ -1,0 +1,128 @@
+{
+  "date": "2026-11-25",
+  "model": "veto-url2-2026-11-24",
+  "mode": "offline",
+  "sampling": "First three sorted same-host HTTPS links per responding official home page, interleaved across hosts, excluding the existing login fixtures. First ten distinct hosts in the public OpenPhish feed. Labels selected before scoring. Training-set overlap unavailable. No feed URLs visited.",
+  "results": [
+    {
+      "sha256_url": "1f259def02e32ffbd3efd9dfddc350e93931c8ea0340eeb8d7fd5ef77a4eae64",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "f7100a8edc3a2c1c576fbaa34d5a04db8b668f63457b1ab0e6e72f872b9dd07d",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "49a6478e616ae1527eae893529714f6d2d50010f00a34d74e3dcf6a13bf32f73",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "b54d582ae868cb9aa0be41110fb50ee2e060acb4ccceb0f20b75beb28f941e83",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "42345e500ba54e0af091a58883d9af63c0ed46c215b1b6fc9d5dee429dc4ccbc",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "75ab017f95ef3662f32b9b3d059f18b8f40da0956e13616c78c96237e5969efc",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "80b57a6f4148c4e98bea47567566d7f5b552387ab430dd747622afcb3339e8d8",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "e61c1eb969538a5c9a727351c08673b0990c00f9f899c15b73ed79dc81404b9c",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "4c3d33f1bb4d6521ea5d8c534b06fa7bab24ee852dc88b6c8e5fbac59e1a78dd",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "d0a31f6a3be66613705e491ff58d09c3d75df000bed8f225714b9f3ac600262f",
+      "source": "official UAE site navigation",
+      "label": "0",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "3236c23aeca0f85e758ac2d7b413c921e34ccb959b57eca6650b6354dc8ba7d1",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "c67dc0fcaf4a502251439ee4b1e2cf8f2c951f303d5a79d01115f562f48b1c45",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "legitimate"
+    },
+    {
+      "sha256_url": "06d68f9e9a91a19b29b5f039cb83c6663cb88cf2c1a5e65c088f66f0f1a3dd62",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "bd045b8a73957e948310f3ffd2b286d765b3200736aae1998ac76b03639eda9d",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "c0d005e7f247658d252baeb3ff15cf23bbd2693ae738a9beb592c79b2d98b623",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "2962e5d97701fe1b8fdc4719c8cee6632aaf9c8d5ade501f678321c3735e79e5",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "9967f02ce2396b488445ab6b07c80cd4b06c5ec9c177d6cb095b4e0d4e18d7e0",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "4c2e2ad8ef8fe653afcd24ca83423c091e64d3ddcc580fa32f2f514326989a15",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "6ba66d84ffae16e7bcdab07051f7f2ce4de2c20b1f6cef0d4f3fc1442be5c786",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    },
+    {
+      "sha256_url": "d1bc37d582f9e57b4ec5034964555b1c6e8c7deec2e7d3db324da767d808adf5",
+      "source": "OpenPhish public feed",
+      "label": "1",
+      "verdict": "phishing"
+    }
+  ]
+}

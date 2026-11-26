@@ -1,12 +1,14 @@
 # Audit run log (24 Nov 2026, evening)
 
-Private to the team. This is our own challenge run: we tested our URL judge and new-domain watch before the other AI does. Every script here is deterministic (fixed seeds), offline, and never visits a URL or uses a key. Phishing examples are defanged (`hxxps`, `[.]`). New-domain names are masked (first letter and TLD only). The unmasked list stays on the laptop that ran the watch and is not in this package.
+Historical workspace paths such as `results/`, `audit/` and `data_raw/` identify original run artifacts maintained separately. The [held-out report](../data/judge-report.json) and [certificate-log snapshots](../data/ct-history/) are included in this checkout.
+
+This is our own challenge run: we tested our URL judge and new-domain watch before the other AI does. Every script here is deterministic (fixed seeds), offline, and never visits a URL or uses a key. Phishing examples are defanged (`hxxps`, `[.]`). New-domain names are masked (first letter and TLD only). The unmasked list stays on the laptop that ran the watch and is not in this package.
 
 ## Environment
 
 - Windows 11 Home, 10.0.26300. Node v22.19.0.
 - Project: `project/` (the URL judge, the Sentinel, the Android build, the web console).
-- Data: `data_raw/urlv2` (OpenPhish history, the held-out split files, legitimate crawl), `data_raw/nrd` (two WhoisDS daily lists, 22 and 23 Nov 2026), `project/data` (model weights and the institution rulebook).
+- Data: `data_raw/urlv2` (OpenPhish history, the held-out split files, legitimate crawl), `data_raw/nrd` (two WhoisDS daily lists, 22 and 23 Nov 2026), `data` (model weights and the institution rulebook).
 - Input hashes: `results/before/input-hashes.txt` was taken before the first fix. Files changed after that are listed under "What changed", with the test results.
 
 ## How to run
@@ -21,7 +23,7 @@ node audit\scripts\audit-nrd77.mjs > audit\results\after2\nrd77.json
 
 The scripts find `project/` and `data_raw/` relative to their own location. Override with `VETO_ROOT`, `VETO_DATA` and `VETO_VAR` if needed.
 
-The held-out evaluation (writes `project/data/judge-report.json` for the test split only):
+The held-out evaluation (writes `data/judge-report.json` for the test split only):
 
 ```powershell
 cd project

@@ -47,7 +47,7 @@ export async function checkHost(hostname, { demoHosts = false } = {}) {
  * guard, re-checked on every redirect, pinned to the checked IP (no DNS-rebinding window), size-capped.
  * The bytes are only parsed, never executed or saved.
  */
-export async function fetchBytes(url, { demoHosts = false, maxBytes = 40 << 20, timeout = 15000, hops = 5, userAgent = 'Mozilla/5.0 (Linux; Android 14)' } = {}) {
+export async function fetchBytes(url, { demoHosts = false, maxBytes = 40 << 20, timeout = 15000, hops = 5, headersOnly = false, userAgent = 'Mozilla/5.0 (Linux; Android 14)' } = {}) {
   let cur;
   try { cur = new URL(url); } catch { return { ok: false, error: 'bad url' }; }
   for (let i = 0; i <= hops; i++) {
@@ -59,10 +59,23 @@ export async function fetchBytes(url, { demoHosts = false, maxBytes = 40 << 20, 
     const res = await new Promise(resolve => {
       const mod = cur.protocol === 'https:' ? https : http;
       const req = mod.request(cur, {
-        method: 'GET', timeout, rejectUnauthorized: false, // bytes are inspected, never trusted
+        method: 'GET', timeout, rejectUnauthorized: headersOnly, // bytes are inspected, never trusted
         headers: { 'user-agent': userAgent, accept: '*/*' },
         lookup: (_h, opts, cb) => (opts && opts.all ? cb(null, [{ address: ip, family }]) : cb(null, ip, family))
       }, r => {
+        if (headersOnly) {
+          const status = r.statusCode;
+          let destination = null;
+          if ([301, 302, 303, 307, 308].includes(status) && r.headers.location) {
+            try {
+              const target = new URL(r.headers.location, cur);
+              if (['http:', 'https:'].includes(target.protocol)) destination = target.origin + target.pathname;
+            } catch { /* Invalid Location. */ }
+          }
+          resolve({ status, destination });
+          r.destroy();
+          return;
+        }
         if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) { r.resume(); return resolve({ redirect: r.headers.location }); }
         if (r.statusCode !== 200) { r.resume(); return resolve({ error: `HTTP ${r.statusCode}` }); }
         const declared = Number(r.headers['content-length'] || 0);

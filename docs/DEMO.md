@@ -7,35 +7,28 @@ Record the screen (laptop) and the phone (a second phone filming it, or `scrcpy`
 | 0:00 to 0:08 | Phone: a fake "Emirates NBD" SMS arrives, Kiki jumps out red | "A scam SMS. Veto catches it on the phone: Emirates NBD never asks for your OTP." |
 | 0:08 to 0:18 | Dial the number written in the SMS → **Veto held this call** → tap *Call Emirates NBD: 600 54 0000* | "And if you call the scammer's number anyway, Veto holds the call and offers the bank's real number." |
 | 0:18 to 0:32 | Laptop: X-ray `salik-fine-pay.localhost` → "what it wants", fake data sent to a Telegram bot (blocked) → open *Evidence for investigators* | "Veto opens the link in a sealed browser: it wants your card and OTP, sends them to a criminal's Telegram bot, wears Salik's real icon, and hides from computers." |
-| 0:32 to 0:46 | `/sentinel.html`: KPIs, *Run the hunt* progress, suspects list, a campaign card | "Sentinel hunts these sites before the SMS goes out: ten thousand look-alike names, the registered ones, the live ones, and links them into campaigns by the same Telegram bot." |
+| 0:32 to 0:46 | `/police`: KPIs, *Run the hunt* progress, suspects list, a campaign card | "Sentinel hunts these sites before the SMS goes out: ten thousand look-alike names, the registered ones, the live ones, and links them into campaigns by the same Telegram bot." |
 | 0:46 to 0:55 | Open the takedown pack (evidence + abuse contacts + STIX) | "One click: the evidence pack for the registrar, the host and aeCERT." |
 | 0:55 to 1:00 | Title slide | "Veto.ai. Scammers can fake a logo. They can't fake the bank's own rules." |
 
 Before recording: `npm start`; X-ray the three demo pages once (bank, parcel, Salik) so the campaign exists; run one hunt
 (about 5 minutes) so the suspects list is full; on the phone, the call-redirection role must be on (Veto setup screen → *Stop calls to fake numbers*).
 
-# Final pitch (26 Nov): 3-minute demo + 2-minute Q&A, built on the judging sheet
+# Final police dashboard demo · 5 minutes, followed by 5 minutes of Q&A
 
-The official sheet scores **accuracy 30 %, early detection & coverage 25 %, explainability & actionability 20 %,
-UAE relevance & innovation 15 %, feasibility & presentation 10 %**. Every minute below earns one of them, in that order
-of weight. Have four browser tabs open before you start: `/judge.html`, `/sentinel.html`, the app `/` and one
-takedown pack; the phone on the table, Veto open, the scammer phone ready.
+The ScamShield AI Hackathon Agenda and Guidelines v5, pages 12–16, sets the five weights and the final slot. Open the signed-in police dashboard before the timer starts. Use the following sequence in the hosted console.
 
-| Time | Criterion | Show | Say |
-|---|---|---|---|
-| 0:00 to 0:20 | (problem + solution, max 1 min) | Title slide | "Scam sites live for days, victims report after the money is gone. Veto finds the site before the SMS goes out, proves what it does, hands police the takedown file, and on the phone stops the call to the scammer's number." |
-| 0:20 to 0:55 | **Accuracy 30 %** | `/judge.html` → *Load a sample* (or the judges' own list) → **Judge them** | "This is how you can test us: paste your hidden list. Allowlist, rulebook, a URL model trained on half a million dated public URLs, and a popularity guard. On the last 30 days of real phishing, never seen in training: precision X, recall Y, false alarms Z, and **zero** false alarms on 2,231 pages of official UAE sites. Online mode follows short links and redirects, and catches cloaking." |
-| 0:55 to 1:35 | **Early detection 25 %** | `/sentinel.html` → *Run the hunt* (or the result of the morning run): 70,000 domains registered yesterday read in 20 s, ~10,000 look-alikes checked in DNS, certificate logs, search ads and Maps listings (key) | "Yesterday 70,000 domains were registered worldwide. Veto read every one in twenty seconds: a Salik look-alike registered yesterday (name withheld until it is reported). Before a certificate, before an SMS, before a victim." |
-| 1:35 to 2:15 | **Explainability 20 %** | App → X-ray `http://salik-fine-pay.localhost:8787/` → what it wants → the fake-data trap caught the Telegram bot → Evidence for investigators → **Takedown pack** → *evidence.zip* | "Veto typed FAKE card details: the page sent them to a criminal's Telegram bot, blocked. It wears Salik's real icon and shows computers a travel blog. One click: PDF, screenshot, WHOIS, hosting, timestamps, SHA-256 manifest, STIX for aeCERT." |
-| 2:15 to 2:40 | **UAE + innovation 15 %** | Console → the **scam network graph**: three scams, one Telegram bot | "Three different scams, bank, parcel, Salik: one criminal. Veto links sites by what criminals reuse, the bot, the analytics ID, the kit." |
-| 2:40 to 3:00 | **Feasibility 10 %** (+ the trump card) | Phone: a scam SMS arrives (Kiki STOP) → dial its number → **Veto held this call** → *Call Emirates NBD 600 54 0000* | "And for the person who already has the scam SMS: Veto holds the call to the scammer's number and offers the bank's real one. It runs on a laptop and a phone today; the police pilot is the console plus Aman." |
+| Time | Criterion | Officer action and evidence |
+|---|---|---|
+| 0:00–1:00 | Detection accuracy · 30% | Open Check → Judge a list. Expand Saved evaluation. Read the phishing misses and false alarms, then open the labelled results to inspect the SHA-256 record of the miss. Use a separate check for an official UAE URL. Training overlap is unknown. The judges can supply their own labelled list. |
+| 1:00–2:00 | Early detection and coverage · 25% | In Early warning, select a UAE institution and check live listings. Show the query time and separate Search, Ads and Maps counts. A zero means the provider returned no results in that channel. Read any provider error aloud. Unmatched branch numbers need review. |
+| 2:00–3:10 | Explainability and actionability · 20% | In Check → Check a listing, enter Sidra Capital and +971 54 759 6133. Open the dated DFSA citation. Repeat with National Bank of Kuwait and +971 4 316 1700 to show the genuine number and spoofing warning. Open a case and its evidence export. Identify the capture time, observed evidence and officer decision. |
+| 3:10–4:05 | UAE relevance and innovation · 15% | Switch to Arabic. Open Reported message, choose the fake TAMM fee example and analyze it. Point to the Arabic explanation of the look-alike payment domain and foreign sender. Open Campaigns and identify the shared signal connecting two cases. Explain that a reused signal supports investigation and does not establish common ownership. |
+| 4:05–5:00 | Feasibility and presentation · 10% | Open the sign-off log. Propose a limited police pilot: first replay labelled cases; then run read-only daily hunts; finally trial officer-reviewed referrals. Measure false alerts per 100 reviewed listings, time to first review and evidence completeness. End with the main limitation: live provider coverage varies, and current ownership of a historical contact requires investigation. |
 
-**Q&A cheat-sheet (2 min):** accuracy method (time split, never-seen domains, honest misses) · privacy (the phone checks
-on-device; the server stores scam SITES, never people) · scale (DNS + NRD + model are milliseconds per name; the X-ray is
-the only heavy step and runs only on the top suspects) · what is not done (live Search/Maps need a SerpApi or Google key;
-voice deepfakes; iPhone call interception is impossible on iOS).
+For Q&A, distinguish a fresh discovery from a regulator-published historical contact and from a training case. The hosted DFSA example demonstrates recognition of a documented contact. Only call a discovery live when the displayed query actually returned it.
 
-# 3-minute demo script
+# Optional mobile demonstration
 
 **Setup (before you go on stage):** `npm start` on the laptop; open http://localhost:8787 full-screen. Android phone with Veto installed (USB install, see HANDOFF.md), every row "On", and WhatsApp + Messages switched on under *Apps Veto reads*. A teammate's phone is the "scammer": its number must NOT be saved in the demo phone. Save a second teammate as "Mum". Same Wi-Fi for both; in Veto → Settings: online checks ON,
 server `http://<laptop-ip>:8787`. Volume up. Rehearse once. Keep this file open
@@ -53,7 +46,7 @@ on a second screen.
 | 2:00 to 2:20 | X-ray `http://phone-cleaner.localhost:8787/` | "Is it a virus? This page is a **fake** virus warning, websites can't scan your phone. Its button pushes an app: Veto read the app *without installing it*, SMS codes + Accessibility + drawing over your bank app = the **banking-trojan toolkit**." |
 | 2:20 to 2:35 | Phone: tap the link in a scam SMS (Veto set as the link opener, *Link Shield*) | Veto checks the link before any browser opens it: red verdict, "Don't open"; on a dangerous page "Open anyway" unlocks only after 5 seconds. |
 | 2:35 to 2:50 | **🔒 Network requests during this check: 0** (web) / Privacy card (phone) | "Messages never leave the phone. Only a link or a number goes online, and only if you switch it on." |
-| (finals, +30 s) | `/sentinel.html` → a campaign card → takedown pack | "For AD Police: Sentinel finds the look-alike sites, proves which are armed, links them into campaigns by the same Telegram bot, and prepares the takedown pack with the registrar's abuse contact and a STIX file for aeCERT." |
+| (finals, +30 s) | `/police` → a campaign card → takedown pack | "For AD Police: Sentinel finds the look-alike sites, proves which are armed, links them into campaigns by the same Telegram bot, and prepares the takedown pack with the registrar's abuse contact and a STIX file for aeCERT." |
 | 2:50 to 3:00 | Results slide | "Held-out test: 100 % precision, 80 % recall on the first blind run, zero false alarms. One rulebook for web and phone. Next: real AD Police data and an anonymised threat feed." |
 
 ## Backup plan

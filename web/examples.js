@@ -5,6 +5,12 @@ const port = typeof location !== 'undefined' && location.port ? `:${location.por
 const DEMO_CONTACTS = 'Mum: +971 50 111 2233\nAhmed (son): 050 444 5566';
 
 export const EXAMPLES = [
+  { id: 'tamm_ar', label: { en: 'Arabic: fake TAMM fee with a link', ar: 'رسوم «تم» مزيفة مع رابط' }, channel: 'sms', sender: '+92 300 1234567',
+    text: 'تم: لديك رسوم خدمة غير مدفوعة. لتجنب إيقاف الخدمة ادفع الآن عبر الرابط https://tamm-abudhabi-pay.top/ae' },
+  { id: 'fab_otp_ar', label: { en: 'Arabic: “FAB” asks for your OTP', ar: '«بنك أبوظبي الأول» يطلب رمز التحقق' }, channel: 'sms', sender: 'FAB-Alert',
+    text: 'عزيزي العميل، تم إيقاف بطاقتك في بنك أبوظبي الأول. لإعادة التفعيل أرسل رمز التحقق OTP الذي وصلك الآن.' },
+  { id: 'police_fine', label: { en: 'Fake Dubai Police fine, UK number, short link', ar: 'مخالفة «شرطة دبي» مزيفة من رقم بريطاني ورابط مختصر' }, channel: 'sms', sender: '+44 7911 123456',
+    text: 'Dubai Police: You have an unpaid traffic fine of AED 300. Pay within 24 hours to avoid legal action: https://cutt.ly/dxb-fine' },
   { id: 'himum', label: { en: '“Hi Mum” from a new number (contacts check)', ar: '«مرحبا ماما» من رقم جديد (فحص جهات الاتصال)' }, channel: 'whatsapp', sender: '+44 7700 900123',
     text: 'Hi Mum, this is my new number, my phone broke. Can you send me AED 2,000 urgently? Don’t tell dad.',
     context: { inContacts: false, firstContact: true, savedList: DEMO_CONTACTS } },

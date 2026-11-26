@@ -15,17 +15,19 @@ import { aiConfigured, deepCheck, inspectScreenshot } from './ai.js';
 import { intelConfigured, ipqsPhone } from './intel.js';
 import { callerCheck } from '../engine/context.js';
 import { recordCase, getCase, listCases, campaigns, campaignOf, shotPath } from './cases.js';
-import { dossierHtml, stixBundle, shotDataUrl, evidenceBundle } from './dossier.js';
+import { dossierHtml, stixBundle, shotDataUrl, evidenceBundle, reportTexts } from './dossier.js';
 import { sweep, getJob, overview, xraySuspect, PRIORITY } from './sentinel.js';
-import { connectors, connectorsConfigured } from './connectors.js';
+import { helplineHunt, connectors, connectorsConfigured } from './connectors.js';
 import { judgeOffline, judgeOnline, judgeList, parseList } from './judge.js';
 import { INSTITUTIONS } from '../data/institutions.js';
+import { storeRestore, storeStatus } from './store.js';
+import { codeConfigured, checkCode, sessionCookie, clearCookie, hasSession, recordReview, auditLog, reviewOf } from './console.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT) || 8787;
 const DEMO = process.env.VETO_DEMO !== '0';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
-  '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
+  '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
 const STATIC = [['/engine/', 'engine'], ['/data/', 'data'], ['/', 'web']];
 
 const SECURITY_HEADERS = {
@@ -55,9 +57,13 @@ async function readJson(req, limit = 200_000) {
 // The police console (Sentinel, case file, campaigns) answers only on this machine, or with the console token.
 const CONSOLE_TOKEN = process.env.VETO_CONSOLE_TOKEN || '';
 const isLocal = req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !req.headers['x-forwarded-for'];
-const consoleOk = req => isLocal(req) || (!!CONSOLE_TOKEN && req.headers['x-veto-console'] === CONSOLE_TOKEN);
+const consoleOk = req => isLocal(req) || (!!CONSOLE_TOKEN && req.headers['x-veto-console'] === CONSOLE_TOKEN) || hasSession(req);
+// behind a hosting proxy every request arrives from the proxy's address, so rate limits use the forwarded client address
+const clientIp = req => (!isLocal(req) && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress || 'x';
+const policeAliases = new Set(['/resident', '/index.html', '/home.html', '/sentinel.html', '/share']);
+const TRAINING_HOSTS = ['secure-verify-uae', 'parcel-redelivery', 'salik-fine-pay', 'bank-app-update', 'phone-cleaner'];
 const brief = c => ({ id: c.id, host: c.finalHost, registrable: c.registrable, verdict: c.verdict, risk: c.risk, imitates: c.imitates, firstSeen: c.firstSeen, lastSeen: c.lastSeen,
-  source: c.source, armed: !!c.armed, asks: c.asks, exfil: (c.exfil || []).map(e => e.kind), cloaked: c.cloaking?.verdict === 'cloaked', copiedLogo: !!c.logos?.length, hasShot: c.hasShot });
+  source: c.source, armed: !!c.armed, asks: c.asks, title: c.title, review: (r => r && { decision: r.decision, officer: r.officer, t: r.t })(reviewOf(c.id)), exfil: (c.exfil || []).map(e => e.kind), cloaked: c.cloaking?.verdict === 'cloaked', copiedLogo: !!c.logos?.length, hasShot: c.hasShot });
 
 // very small per-IP rate limit for the server-side helpers
 const hits = new Map();
@@ -67,6 +73,17 @@ function limited(ip, max = 20) {
   h.push(now);
   hits.set(ip, h);
   return h.length > max;
+}
+
+// one shared hourly budget for the X-ray chamber, so a public page cannot be used to wear the server out
+const XRAY_HOURLY = Number(process.env.VETO_XRAY_HOURLY) || 240;
+let xrayRuns = [];
+function xrayBudgetSpent() {
+  const now = Date.now();
+  xrayRuns = xrayRuns.filter(t => now - t < 3600_000);
+  if (xrayRuns.length >= XRAY_HOURLY) return true;
+  xrayRuns.push(now);
+  return false;
 }
 
 async function serveStatic(req, res, pathname) {
@@ -83,7 +100,6 @@ async function serveStatic(req, res, pathname) {
       res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache', ...SECURITY_HEADERS });
       return res.end(data);
     } catch {
-      if (dir === 'web' && !path.extname(rel)) return serveStatic(req, res, '/index.html'); // app routes like /share
       return send(res, 404, { error: 'not found' });
     }
   }
@@ -125,11 +141,26 @@ async function serveDemo(req, res, sub, pathname) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const host = (req.headers.host || '').split(':')[0].toLowerCase();
-  const ip = req.socket.remoteAddress || 'x';
+  const ip = clientIp(req);
   try {
     if (DEMO && host.endsWith('.localhost') && host !== 'localhost') {
       return await serveDemo(req, res, host.replace(/\.localhost$/, ''), url.pathname);
     }
+    if (url.pathname === '/healthz') return send(res, 200, 'ok', 'text/plain; charset=utf-8');
+    // where the case file lives (files only, or files + database copy); no secrets, no case data
+    if (url.pathname === '/api/store') { const s = storeStatus(); return send(res, 200, { mode: s.mode, restored: s.restored, pending: s.pending, healthy: !s.lastError }); }
+    if (policeAliases.has(url.pathname.replace(/\/$/, ''))) { res.writeHead(302, { Location: '/police', ...SECURITY_HEADERS }); return res.end(); }
+    // ---------- police console sign-in (hosted): access code in, signed session cookie out ----------
+    if (url.pathname === '/api/console/session') {
+      return send(res, 200, { ok: consoleOk(req), mode: isLocal(req) ? 'local' : consoleOk(req) ? 'code' : 'none', codeConfigured: codeConfigured() });
+    }
+    if (url.pathname === '/api/console/login' && req.method === 'POST') {
+      if (limited('login:' + ip, 8)) return send(res, 429, { ok: false, error: 'rate' });
+      const body = await readJson(req, 2_000);
+      if (!checkCode(body.code)) return send(res, 401, { ok: false, error: codeConfigured() ? 'wrong' : 'not_configured' });
+      return send(res, 200, { ok: true }, 'application/json', { 'Set-Cookie': sessionCookie(req) });
+    }
+    if (url.pathname === '/api/console/logout' && req.method === 'POST') return send(res, 200, { ok: true }, 'application/json', { 'Set-Cookie': clearCookie() });
     if (url.pathname === '/api/health') {
       const x = await xrayAvailable();
       return send(res, 200, { ok: true, xray: x.ok, xrayBrowser: x.ok ? `${x.channel} ${x.version}` : x.error, ai: aiConfigured(), intel: intelConfigured(), connectors: connectorsConfigured(), console: consoleOk(req), demo: DEMO, port: PORT });
@@ -169,6 +200,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/xray' && req.method === 'POST') {
       if (limited(ip)) return send(res, 429, { ok: false, error: 'rate', message: 'Too many X-rays, wait a minute.' });
       const { url: target } = await readJson(req, 10_000);
+      if (!consoleOk(req) && xrayBudgetSpent()) return send(res, 429, { ok: false, error: 'rate', message: 'The X-ray chamber is busy, try again in a few minutes.' });
       const result = await xray(target, { demoHosts: DEMO, ai: aiConfigured() ? { inspectScreenshot } : null });
       // the scam SITE goes into the case file (address without query string + evidence); who asked is never stored
       const c = recordCase(result);
@@ -179,19 +211,44 @@ const server = http.createServer(async (req, res) => {
       }
       return send(res, 200, result);
     }
+    // Every representation of a stored case shares the police console's access policy.
+    if ((url.pathname.startsWith('/api/case/') || url.pathname.startsWith('/api/dossier/')) && !consoleOk(req)) {
+      return send(res, 403, { error: 'console', message: 'Sign in at /police to access stored case evidence.' });
+    }
     const dm = /^\/api\/dossier\/([a-f0-9]{12})$/.exec(url.pathname);
     if (dm) {
       const rec = getCase(dm[1]);
       if (!rec) return send(res, 404, { error: 'no such case' });
-      return send(res, 200, dossierHtml(rec, { campaign: campaignOf(rec.id), shot: shotDataUrl(shotPath(rec.id)) }), 'text/html; charset=utf-8');
+      return send(res, 200, dossierHtml(rec, { campaign: campaignOf(rec.id), shot: shotDataUrl(shotPath(rec.id)), review: reviewOf(rec.id) }), 'text/html; charset=utf-8');
     }
     const zm = /^\/api\/case\/([a-f0-9]{12})\/evidence\.(zip|pdf)$/.exec(url.pathname);
     if (zm) {
       const rec = getCase(zm[1]);
       if (!rec) return send(res, 404, { error: 'no such case' });
-      const b = await evidenceBundle(rec, { campaign: campaignOf(rec.id), shotFile: shotPath(rec.id) });
+      const b = await evidenceBundle(rec, { campaign: campaignOf(rec.id), shotFile: shotPath(rec.id), review: reviewOf(rec.id) });
       if (zm[2] === 'pdf') return b.pdf ? send(res, 200, b.pdf, 'application/pdf', { 'Content-Disposition': `inline; filename="veto-case-${rec.id}.pdf"` }) : send(res, 503, { error: 'pdf unavailable' });
       return send(res, 200, b.zip, 'application/zip', { 'Content-Disposition': `attachment; filename="veto-evidence-${rec.registrable || rec.id}-${rec.id}.zip"` });
+    }
+    // ---------- police console: one case in full, its picture, and the officer sign-off ----------
+    const cm = /^\/api\/case\/([a-f0-9]{12})(\/shot\.jpg|\/review)?$/.exec(url.pathname);
+    if (cm) {
+      const rec = getCase(cm[1]);
+      if (!rec) return send(res, 404, { error: 'no such case' });
+      if (cm[2] === '/shot.jpg') {
+        const file = shotPath(rec.id);
+        return file ? send(res, 200, await fs.readFile(file), 'image/jpeg') : send(res, 404, { error: 'no picture' });
+      }
+      if (cm[2] === '/review') {
+        if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+        const body = await readJson(req, 4_000);
+        try { return send(res, 200, { ok: true, review: recordReview({ caseId: rec.id, host: rec.finalHost, decision: body.decision, officer: body.officer, note: body.note }) }); }
+        catch (e) { if (e.code === 400) return send(res, 400, { ok: false, error: e.message }); throw e; }
+      }
+      return send(res, 200, { ok: true, case: rec, campaign: campaignOf(rec.id), review: reviewOf(rec.id), reports: reportTexts(rec) });
+    }
+    if (url.pathname === '/api/audit') {
+      if (!consoleOk(req)) return send(res, 403, { error: 'console' });
+      return send(res, 200, { ok: true, ...auditLog() });
     }
     const sm = /^\/api\/case\/([a-f0-9]{12})\/stix$/.exec(url.pathname);
     if (sm) {
@@ -207,7 +264,24 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, { ok: true, ...overview(), campaigns: campaigns(), cases: listCases().slice(0, 150).map(brief), connectors: connectorsConfigured(),
           institutions: INSTITUTIONS.filter(i => i.domains.length && !i.generic).map(i => ({ id: i.id, name: i.name, type: i.type, priority: PRIORITY.includes(i.id) })) });
       }
+      if (url.pathname === '/api/sentinel/helplines' && req.method === 'POST') {
+        const body = await readJson(req, 1000);
+        const inst = INSTITUTIONS.find(i => i.id === body.inst && !i.generic && i.domains.length);
+        if (!inst) return send(res,400,{error:'Unknown institution'});
+        return send(res,200,await helplineHunt(inst));
+      }
       if (url.pathname === '/api/sentinel/job') return send(res, 200, { ok: true, job: getJob() });
+      // training cases: X-ray Veto's own harmless demo scam pages, so a new officer can practise on a full case file
+      if (url.pathname === '/api/sentinel/training' && req.method === 'POST') {
+        if (!DEMO) return send(res, 409, { ok: false, error: 'demo_off' });
+        const made = [];
+        for (const sub of TRAINING_HOSTS) {
+          const r = await XR.run(`http://${sub}.localhost:${PORT}/`).catch(() => null);
+          const c = r?.ok ? recordCase(r, { source: 'training' }) : null;
+          if (c) made.push(c.id);
+        }
+        return send(res, 200, { ok: true, cases: made });
+      }
       if (url.pathname === '/api/sentinel/sweep' && req.method === 'POST') {
         const body = await readJson(req, 10_000);
         const insts = Array.isArray(body.insts) && body.insts.length ? body.insts.map(String).slice(0, 40) : PRIORITY;
@@ -235,16 +309,19 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method' });
     // an unknown API path answers with JSON 404, never with the app shell (a wrong endpoint must not look like success)
     if (url.pathname.startsWith('/api/')) return send(res, 404, { error: 'not found' });
-    return await serveStatic(req, res, url.pathname);
+    const policePage = ['/', '/police', '/police/'].includes(url.pathname);
+    return await serveStatic(req, res, policePage ? '/police.html' : url.pathname);
   } catch (e) {
-    const code = e.code === 413 ? 413 : 500;
+    const code = e.code === 413 ? 413 : e instanceof SyntaxError ? 400 : 500;
     if (code === 500) console.error('[veto]', e);
-    return send(res, code, { error: code === 413 ? 'too large' : 'server error' });
+    return send(res, code, { error: code === 413 ? 'too large' : code === 400 ? 'bad request' : 'server error' });
   }
 });
 
+const store = await storeRestore();
 server.listen(PORT, () => {
   console.log(`Veto running on http://localhost:${PORT}`);
+  console.log(`  Case file: ${store.mode === 'database' ? (store.restored ? `database copy ON (restored ${store.restored.cases} cases, ${store.restored.signoffs} sign-offs, ${store.restored.pictures} pictures)` : 'database copy configured but unreachable, using local files') : 'local files only (set VETO_STORE_* to keep it across restarts)'}`);
   console.log(`  AI deep check: ${aiConfigured() ? 'ON (' + (process.env.VETO_AI_MODEL || 'claude-opus-5-5') + ')' : 'off (set ANTHROPIC_API_KEY to enable)'}`);
   const intel = intelConfigured();
   console.log(`  Reputation look-ups: URLhaus/MalwareBazaar ${intel.abusech ? 'ON' : 'off (set ABUSECH_KEY)'} · phone (IPQS) ${intel.ipqs ? 'ON' : 'off (set IPQS_KEY)'}`);

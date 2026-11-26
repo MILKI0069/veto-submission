@@ -142,3 +142,10 @@ test('country second-level zones give the right registrable domain', () => {
 test('metrics report how many labelled rows were not web addresses', () => {
   assert.equal(metrics([{ verdict: 'invalid', label: 1 }, { verdict: 'phishing', label: 1 }]).invalid, 1);
 });
+
+test('a tenant HTML page cannot borrow the storage provider’s popularity', () => {
+  const result = judgeOffline('https://ab89kdefg23qw.s3.eu-north-1.amazonaws.com/start.html');
+  assert.equal(result.layers.platform, true);
+  assert.equal(result.verdict, 'suspicious');
+  assert.equal(judgeOffline('https://ab89kdefg23qw.s3.eu-north-1.amazonaws.com/logo.png').layers.platform, false);
+});

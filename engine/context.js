@@ -12,6 +12,7 @@
 // state, notification metadata). In the web demo it can be typed in. Nothing here leaves the device.
 
 import { matchForm } from './normalize.js';
+import { foldDigits } from './normalize.js';
 import { INSTITUTIONS } from '../data/institutions.js';
 
 // ---------- country of a phone number (E.164 prefix, longest match) ----------
@@ -29,7 +30,7 @@ const CC = [
 ].sort((a, b) => b[0].length - a[0].length);
 
 export function countryOf(number) {
-  const raw = String(number || '').trim();
+  const raw = foldDigits(String(number || '')).trim();
   let d = raw.replace(/[^\d+]/g, '');
   if (!d) return null;
   if (d.startsWith('00')) d = '+' + d.slice(2);
@@ -52,13 +53,15 @@ export function maskNumber(number) {
 }
 export const sameNumber = (a, b) => {
   const n = x => {
-    let d = String(x || '').replace(/\D/g, '');
-    if (d.startsWith('00')) d = d.slice(2);
+    let d = foldDigits(String(x || '')).replace(/\D/g, '');
+    if (/^\s*\+/.test(String(x)) || d.startsWith('00')) return d.replace(/^00/, '');
+    if (/^5\d{8}$/.test(d)) return '971' + d;
     if (/^0\d{8,9}$/.test(d)) d = '971' + d.slice(1); // UAE local format
+    if (/^(?:600|800)\d+$/.test(d)) d = '971' + d;
     return d;
   };
   const A = n(a), B = n(b);
-  return A.length >= 7 && B.length >= 7 && A.slice(-9) === B.slice(-9);
+  return A.length >= 7 && B.length >= 7 && A === B;
 };
 
 // ---------- an incoming call: what can we know BEFORE you answer? (offline) ----------
@@ -73,7 +76,7 @@ const intlDigits = x => {
   if (d.startsWith('00')) d = '+' + d.slice(2);
   return d.startsWith('+') ? d.slice(1) : null;
 };
-export const exactShort = (a, b) => { const A = String(a || '').replace(/\D/g, ''), B = String(b || '').replace(/\D/g, ''); return A.length >= 3 && A === B; };
+export const exactShort = (a, b) => { const A = foldDigits(String(a || '')).replace(/\D/g, ''), B = foldDigits(String(b || '')).replace(/\D/g, ''); return A.length >= 3 && A === B; };
 
 /**
  * @param {string} number            caller number as delivered by the phone (may be empty = hidden)

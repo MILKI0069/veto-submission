@@ -17,6 +17,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { hamming64 } from './forensics.js';
 import { LOGOS } from '../data/logos.js';
+import { storeCase } from './store.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = process.env.VETO_VAR || path.join(ROOT, 'var');
@@ -57,6 +58,7 @@ export function recordCase(x, { source = 'xray', extra = {} } = {}) {
   const rec = {
     id, source: prev?.source || source, firstSeen: prev?.firstSeen || new Date().toISOString(), lastSeen: new Date().toISOString(),
     input: stripQuery(x.input), finalUrl: stripQuery(x.finalUrl), finalHost: x.finalHost, chain: (x.chain || []).map(stripQuery).slice(0, 8),
+    browserStatus: x.browserStatus ?? null, redirectObservation: x.redirectObservation ?? null,
     registrable: regOf(x.finalHost), title: (x.title || '').slice(0, 140), verdict: x.verdict, risk: x.risk, armed: !!x.armed, proof: x.proof || [],
     imitates: f.logos?.[0] ? { id: f.logos[0].inst, name: f.logos[0].name } : extra.imitates || prev?.imitates || null,
     imitationText: imitation ? { en: imitation.en, ar: imitation.ar } : null,
@@ -75,15 +77,18 @@ export function recordCase(x, { source = 'xray', extra = {} } = {}) {
     ...extra
   };
   rec.hasShot = prev?.hasShot || false;
+  let shotB64 = null;
   if (x.screenshot && (x.verdict === 'dangerous' || x.verdict === 'suspicious')) {
     try {
       fs.mkdirSync(SHOTS, { recursive: true });
       fs.writeFileSync(path.join(SHOTS, id + '.jpg'), Buffer.from(x.screenshot.split(',')[1], 'base64'));
       rec.hasShot = true;
+      shotB64 = x.screenshot.split(',')[1];
     } catch { /* picture is optional */ }
   }
   load().set(id, rec);
   try { fs.mkdirSync(DIR, { recursive: true }); fs.appendFileSync(FILE, JSON.stringify(rec) + '\n'); } catch (e) { console.error('[veto] case file:', e.message); }
+  storeCase(rec, shotB64);
   return rec;
 }
 

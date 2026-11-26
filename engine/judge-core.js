@@ -113,7 +113,12 @@ export function judgeOffline(input, depth = 0) {
   // A subdomain on a popular domain that hands out subdomains to anyone (data/hosting-providers.js) is someone's
   // site, not the provider's: the provider's popularity does not vouch for it.
   const userSite = !!HOSTING[reg] && host !== reg && !STORAGE_HOST.test(host); // buckets have their own layer below
-  const platform = isPlatform(host, reg) || shortCode || userSite;
+  // Some hosted HTML uses a long mixed letter/digit tenant label. On its own that
+  // shape proves nothing, but the parent provider's traffic cannot validate the file.
+  const tenant = host.split('.')[0];
+  const mixedTenantPage = STORAGE_HOST.test(host) && /\.html?$/i.test(u.pathname)
+    && /^[a-z0-9]{10,63}$/i.test(tenant) && /[a-z]/i.test(tenant) && /\d.*\d/.test(tenant);
+  const platform = isPlatform(host, reg) || shortCode || userSite || mixedTenantPage;
   const reasons = [];
   // model, re-centred so that its validated threshold (false alarms <= 1 %) sits at 0.5
   const T = m?.threshold || 0.5;
@@ -150,6 +155,10 @@ export function judgeOffline(input, depth = 0) {
   const bucketCap = STORAGE_HOST.test(host) && st.kind !== 'victim_email' && st.kind !== 'brand_lure';
   if (bucketCap && raw >= THRESHOLDS.phishing) reasons.push(sig('storage_cap', 0, 'The address alone does not make a file on a public bucket phishing: no victim e-mail and no famous name with lure words was found in it.', 'عنوان الحاوية وحده لا يجعل الملف احتيالياً: لم يُعثر فيه على بريد ضحية، ولا على اسم مشهور مع كلمات إغراء.'));
   let score = bucketCap ? Math.min(raw, 0.49) : raw;
+  if (mixedTenantPage && bucketCap && score >= THRESHOLDS.suspicious) {
+    reasons.unshift(sig('storage', 0, 'This HTML file is on a tenant-controlled storage host. Check its destination and contents before clearing it.',
+      'ملف HTML مستضاف لدى حساب مستقل على خدمة تخزين. تحقّق من الوجهة والمحتوى قبل استبعاده من المراجعة.'));
+  }
   if (shortCode) {
     score = Math.max(score, SHORT_LINK_FLOOR);
     reasons.push(sig('short_link', SHORT_LINK_FLOOR, `A short link (${reg}) hides the real address, and scammers use short links to slip past filters. Offline, the judge cannot see where it leads, so it is treated as at least suspicious until the online check expands it.`,

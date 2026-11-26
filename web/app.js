@@ -716,7 +716,7 @@ function runListing() {
   const out = $('lstResult');
   if (!r.inst && !r.signals.length && !r.positives.length) { out.replaceChildren(h('div', { class: 'card muted' }, icon('info'), T('lstUnknown'))); return; }
   const tone = r.verdict === 'fake' ? 'scam' : r.verdict === 'suspicious' ? 'high' : r.verdict === 'official' ? 'clear' : 'caution';
-  const ico = { fake: 'octagon-alert', suspicious: 'shield-alert', official: 'shield-check', unknown: 'info' }[r.verdict];
+  const ico = { fake: 'octagon-alert', suspicious: 'shield-alert', official: 'shield-check', unknown: 'info', guide: 'info' }[r.verdict];
   out.replaceChildren(h('div', { class: `listing-result ${r.verdict}` },
     h('div', { class: `verdict ${tone}` }, h('div', { class: 'icon' }, icon(ico)), h('h2', {}, T('lst_' + r.verdict)), r.inst ? h('p', {}, `${T('lstClaims')} ${L(r.inst.name)}`) : null),
     r.signals.length ? h('ul', { class: 'sigs' }, r.signals.map(s => h('li', {}, L(s)))) : null,
@@ -834,7 +834,7 @@ async function init() {
     const shared = [...(withQuery ? [q.get('title'), q.get('text'), q.get('url')] : []), hq.get('text')].filter(Boolean).join('\n');
     if (!shared) return;
     setView('check');
-    $('msg').value = shared; runCheck(); history.replaceState(null, '', '/');
+    $('msg').value = shared; runCheck(); history.replaceState(null, '', '/resident');
   };
   readShared();
   window.addEventListener('hashchange', () => { if (/^#text=/.test(location.hash)) readShared(false); }); // Safari tab already open

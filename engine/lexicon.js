@@ -63,7 +63,7 @@ const GIVE = [
   String.raw`\b(?:i|we) (?:just |urgently )?(?:need|require)\b`, String.raw`\bwhat(?:'s| is) (?:the|your)\b`,
   String.raw`\bconfirm (?:it|them|the|your)\b${W}{0,25}\b(?:to|with) (?:me|us)\b`,
   String.raw`\b(?:batao|bata do|bhejo|bhej do|de do|bolo|likho|share karo|send karo|ibigay|ipadala|sabihin)\b`,
-  `${SEP}(?:ارسل|ابعث|ابعت|شارك|اعطني|اعطيني|عطني|زودني|زودنا|قل|قولي|اخبرني|خبرني|اقرا|اكتب|هات|نحتاج|نبي|ابي|اريد|ابغي|ابغى|ترسل|تبعث|تبعت|تعطيني|تقرا|تقول|تشارك|تزودني|تخبرني|تكتب)(?:ه|ها|ي|لي|ني)?${END}`
+  `${SEP}(?:ارسل|ابعث|ابعت|شارك|اعطني|اعطيني|عطني|عطنا|اعطنا|زودني|زودنا|قل|قولي|اخبرني|خبرني|اقرا|اكتب|هات|نحتاج|نبي|ابي|اريد|ابغي|ابغى|ترسل|تبعث|تبعت|تعطيني|تقرا|تقول|تشارك|تزودني|تخبرني|تكتب)(?:ه|ها|ي|لي|ني)?${END}`
 ];
 // Arabic requests often use a noun after "please": «يرجى إرسال الرمز», «والموافقة عليها».
 const AR_NOUN_REQUEST = `(?:(?:يرجى|رجاء|الرجاء|من فضلك|ممكن|لازم|عليك|نحتاج|اريد|ابي|ابغى|قم ب)\\s?(?:ال)?|${SEP}و)(?:ارسال|مشاركة|اعطاء|تزويدنا|تزويدي|قراءة|الموافقة|موافقة)`;
@@ -124,6 +124,7 @@ export const ACTIONS = {
     direct: rx([
       String.raw`\b(?:approve|accept|confirm|allow|authori[sz]e|press (?:yes|approve|accept|confirm)|tap (?:yes|approve|accept|confirm)|click (?:yes|approve|accept|confirm))\b${W}{0,40}\b(?:notification|request|prompt|pop[\s-]?up|push|transaction|login)\b${W}{0,30}\b(?:app|application)\b`,
       String.raw`\b(?:approve|accept|confirm) (?:it|this|that) (?:in|on|from|through) (?:your|the) (?:banking |bank |mobile )?app\b`,
+      String.raw`(?:وافق|اقبل) علي (?:الطلب|الاشعار)${W}{0,45}(?:نوقف|نلغي|نمنع) (?:دخول|عملية|محاولة)`,
       '(?:وافق|اضغط على موافق|اضغط موافق|اقبل|اكد)[^.\\n]{0,30}(?:الاشعار|الطلب|التنبيه)[^.\\n]{0,25}التطبيق'
     ])
   },
@@ -176,7 +177,7 @@ export const ACTIONS = {
     objects: rx([
       String.raw`\b(?:redelivery|re-delivery|delivery|customs|clearance|release|processing|registration|activation|unlock(?:ing)?|unfreez(?:e|ing)|handling|verification|admin(?:istration)?|insurance|shipping|reschedul(?:e|ing)|visa processing|agent)\s?(?:fee|fees|charge|charges|cost|payment)\b`,
       String.raw`\b(?:fee|charge) of (?:aed|dhs?|usd|\$)`,
-      'رسوم (?:التوصيل|الجمارك|التخليص|الشحن|الاستلام|التفعيل|المعالجة|الافراج|التسجيل|اعادة التوصيل|الفيزا)'
+      'رسوم (?:التوصيل|الجمارك|التخليص|الشحن|الاستلام|التفعيل|المعالجة|المعاملة|الغاء البلاغ|الافراج|التسجيل|اعادة التوصيل|الفيزا)'
     ]),
     verbs: rx(PAY)
   },
@@ -280,7 +281,7 @@ export const TACTICS = {
       String.raw`\barrest(?:ed)?\b`, String.raw`\bwarrant\b`, String.raw`\blegal action\b`, String.raw`\b(?:police|criminal) case\b`,
       String.raw`\bcourt (?:case|summons|order)\b`, String.raw`\bmoney laundering\b`, String.raw`\bdeport(?:ed|ation)?\b`,
       String.raw`\btravel ban\b`, String.raw`\bprosecution\b`, String.raw`\bjail\b`, String.raw`\bimprison(?:ed|ment)?\b`,
-      String.raw`\bblack ?list(?:ed)?\b`, 'غسيل اموال', 'غسل الاموال', 'قضية', 'القبض', 'منع سفر', 'منع من السفر', 'ترحيل', 'السجن', 'النيابة', 'بلاغ ضدك'
+      String.raw`\bblack ?list(?:ed)?\b`, 'غسيل اموال', 'غسل الاموال', 'قضية', 'القبض', 'يتم توقيفك', 'سيتم توقيفك', 'منع سفر', 'منع من السفر', 'ترحيل', 'السجن', 'النيابة', 'بلاغ ضدك'
     ])
   },
   prize: {
@@ -325,7 +326,7 @@ export const TACTICS = {
       String.raw`\b(?:this is|it'?s|its) my new (?:number|phone|whatsapp|no\.?)\b`, String.raw`\bnew number\b`,
       String.raw`\b(?:lost|broke|broken|dropped|changed|damaged) my (?:phone|mobile|sim|number)\b`, String.raw`\bmy phone (?:is )?(?:broken|lost|damaged)\b`,
       String.raw`\bgot a new (?:number|phone)\b`,
-      'هذا رقمي الجديد', 'رقمي الجديد', 'ضاع (?:تلفوني|جوالي|هاتفي)', 'انكسر (?:تلفوني|جوالي|هاتفي)'
+      'رقمي (?:الجديد|اليديد)', 'ضاع (?:تلفوني|جوالي|هاتفي)', 'انكسر (?:تلفوني|جوالي|هاتفي)'
     ])
   },
   family_greeting: {
@@ -460,7 +461,7 @@ const NEG = rx([
 ], 'iu');
 const NOT_REALLY_NEG = rx([
   String.raw`\bdon'?t (?:worry|panic|be (?:afraid|scared|worried))\b`, String.raw`\bdo not (?:worry|panic)\b`, String.raw`\bno (?:problem|worries)\b`,
-  String.raw`\bnot a problem\b`, String.raw`\bif (?:you|u)\b[^,.!?\n]{0,25}\b(?:do not|don'?t|dont|not)\b`, 'لا تقلق', 'لا تخاف', 'لا تشيل هم'
+  String.raw`\bnot a problem\b`, String.raw`\bif (?:you|u)\b[^,.!?\n]{0,25}\b(?:do not|don'?t|dont|not)\b`, 'لا تقلق', 'لا تخاف', 'لا تشيل هم', 'لا تتصل (?:فيني|بي|علي)\\s*,'
 ]);
 
 export function sentenceStart(text, idx) {

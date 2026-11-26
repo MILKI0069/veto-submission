@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
-    "test": "node --test tests/smsmodel.test.js tests/engine.test.js tests/fusion.test.js tests/context.test.js tests/xray.test.js tests/urlml.test.js tests/sentinel.test.js tests/judge.test.js tests/zip-reader.test.js tests/http.test.js tests/robust.test.js tests/provenance.test.js tests/impersonation.test.js tests/callwatch.test.js tests/docs.test.js tests/connectors.test.js tests/ai-merge.test.js tests/textcheck.test.js tests/ctparse.test.js tests/watchlist.test.js",
+    "test": "node --test tests/smsmodel.test.js tests/engine.test.js tests/fusion.test.js tests/context.test.js tests/xray.test.js tests/urlml.test.js tests/sentinel.test.js tests/judge.test.js tests/zip-reader.test.js tests/http.test.js tests/robust.test.js tests/provenance.test.js tests/impersonation.test.js tests/callwatch.test.js tests/docs.test.js tests/connectors.test.js tests/ai-merge.test.js tests/textcheck.test.js tests/ctparse.test.js tests/watchlist.test.js tests/console.test.js tests/webapp.test.js tests/store.test.js",
     "eval": "node tests/eval.js",
     "eval:holdout": "node tests/eval.js --holdout",
     "eval:all": "node tests/eval.js --all",

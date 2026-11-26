@@ -138,7 +138,7 @@ Every row below came from a search result in this pass. None of the figures has 
 
 ### Protocol (fixed before the first run; no rule below may change to fit a result)
 
-1. **Phishing:** unique URLs in `data_raw/urlv2/openphish_history.tsv` first seen 25 Oct to 24 Nov 2026 (the test window), whose lowercase text contains a UAE brand token from `project/data/brands.js` (the UAE block, tokens of 4 or more characters). The script checks that all of them are label 1 in `split_test.tsv`.
+1. **Phishing:** unique URLs in `data_raw/urlv2/openphish_history.tsv` first seen 25 Oct to 24 Nov 2026 (the test window), whose lowercase text contains a UAE brand token from `data/brands.js` (the UAE block, tokens of 4 or more characters). The script checks that all of them are label 1 in `split_test.tsv`.
 2. **Legitimate:** `split_uae.tsv`, the official UAE institution pages, which the shipped model never trained on.
 3. **Judge:** `judgeOffline` only, with no network and no page visits. Strict = phishing verdict; cautious = phishing or suspicious. **Model alone:** `mlUrlScore2` flags when `p >= threshold`.
 4. **Metrics:** recall on phishing, false-alarm rate on legitimate pages, and precision on the combined set (this depends on the mix, so it is not comparable with the test split). 95% bootstrap intervals, 1,000 resamples, seed 20261124.
@@ -151,7 +151,7 @@ Every row below came from a search result in this pass. None of the figures has 
 
 
 
-### Result (run once, 24 Nov night; numbers from project/data/uae-report.json)
+### Result (run once, 24 Nov night; numbers from data/uae-report.json)
 
 | Measure | Value | 95% interval | Note |
 |---|---|---|---|
@@ -217,7 +217,7 @@ Why: Test B applied the URL judge to every new domain, which is not how the watc
 4. **Limit:** the confirmation window is one to two days, so the counts are small. Lead time is claimed only for confirmed cases.
 5. **Rule:** no threshold or rule changes on the basis of this test.
 
-## Results of the unseen-data tests (24 Nov, late; each run once; numbers in project/data/unseen-report.json and project/data/watch-report.json)
+## Results of the unseen-data tests (24 Nov, late; each run once; numbers in data/unseen-report.json and data/watch-report.json)
 
 **Test A, Phishing.Database, unseen by domain**
 - Population 789,052 lines. Excluded 496,615, because their registrable domain was seen in training, validation or test. Unseen: 292,437.
@@ -274,14 +274,14 @@ Why: our rules caught 6.6 % of SMS phishing on SmishX when run blind, and 32 % o
 
 ## Results: attack-style test, unseen-miss diagnosis, labelled synthetic and third-party sets (24 Nov, night; each run once)
 
-**Attack-style test** (2,000 real held-out phishing and 2,000 legitimate URLs; 18 transforms; judge offline; numbers in project/data/attacks-report.json)
+**Attack-style test** (2,000 real held-out phishing and 2,000 legitimate URLs; 18 transforms; judge offline; numbers in data/attacks-report.json)
 - Identity baseline: phishing recall 94.15 % strict and 95.85 % cautious; false alarms on legitimate 0.8 % strict and 1.1 % cautious.
 - Strict recall stays at 93.7 % or higher in 17 of the 18 rows (identity included). The exception is the short-link wrapper, at 57.0 %. Values: identity 94.15 %; uppercase host, percent-encoded host, defanged form and unicode full stop 94.15 %; open-redirect wrapper 94.25 %; tracking parameters 94.05 %; encoded path 93.7 %; credentials before the host 99.3 %; subdomain stuffing 99.35 %; IP-address host 94.25 %; Cyrillic homoglyph 99.5 %; cheap TLD swap 99.8 %; hyphen words 100 %; base64 redirect parameter 100 % (design caveat below); long path 99.05 %; plain http 99.2 %.
 - Short-link wrapper (destination unknown offline): strict recall 57.0 %, cautious 100 %. This matches the documented policy: a short link with an unknown destination is at least suspicious offline.
 - Each transform that adds a suspicious feature also raises false alarms on the transformed legitimate URLs. The rates are high for IP hosts (83 %), cheap TLDs (76 %), credentials (80 %), subdomain stuffing (77 %), homoglyphs (94 %), hyphen words (96 %) and long paths (60.5 %). Plain http reaches 56 %, and that matters most for real legitimate sites. The cheap-TLD and plain-http figures are the ones to fix first; see the candidate-model entry below.
 - Design caveat: the base64 redirect transform gives every URL the same non-official host, so its 100 % recall and 100 % false alarms say nothing about the judge. It must be redesigned before it is quoted.
 
-**Unseen-miss diagnosis** (Phishing.Database unseen by domain; 292,437 URLs; 32,290 misses; project/data/unseen-misses-report.json)
+**Unseen-miss diagnosis** (Phishing.Database unseen by domain; 292,437 URLs; 32,290 misses; data/unseen-misses-report.json)
 - 73 % of the misses (23,584) are ordinary-looking domains with no brand token, no lure words, a domain outside the top 100,000 and an ordinary top-level domain. Without page content these look like small legitimate sites, so an offline URL judge cannot separate them.
 - Public file hosts: 4,937 of 4,983 are missed by the strict verdict. The bucket layer caps files without a victim e-mail or lure words to suspicious, so this part is by design. The cautious figure for these files is not yet measured.
 - Free hosting and site builders: 82,353 of 82,354 caught. IP hosts: all caught. Cheap TLDs: 98.6 %. Brand tokens: 97.0 %. Lure words: 97.0 %. Popular domains (top 100,000): 48.3 %, on 704 URLs.
@@ -323,7 +323,7 @@ Pre-registered rule (fixed before training; all four must hold on real data):
 - (c) Unseen Phishing.Database recall up by at least 1 point, or real attack-test improvement on at least three transforms: the attack test shows recall at least 1 point higher than the control on three transforms (IP-address host, short-link wrapper, tracking parameters). Two of these came with much higher false alarms (IP-address host 66.20 % to 82.85 %; short-link wrapper 13.00 % to 45.05 %), so they are not counted as real improvements. On the unseen set the rule is met: Phishing.Database recall is 90.06 % against 88.96 % for the shipped model (+1.10 points; see the entry below).
 - (d) False alarms on plain-http and cheap-TLD legitimate URLs do not rise: NOT met. Cheap-TLD false alarms rise from 76.00 % (shipped) and 76.20 % (control) to 83.05 %. Plain-http false alarms rise from 55.00 % to 56.25 % against the control.
 
-Decision: the candidate does not replace the shipped model. Rule (d) fails, and the rule needs all four. Nothing in the product changes: project/data/judge-report.json is byte-identical to the copy taken before the run. The control and the candidate stay in project/data/candidate/ as documented results.
+Decision: the candidate does not replace the shipped model. Rule (d) fails, and the rule needs all four. Nothing in the product changes: data/judge-report.json is byte-identical to the copy taken before the run. The control and the candidate stay in project/data/candidate/ as documented results.
 
 Reading outside the rule (recorded, not used for the decision): the candidate gains 0.67 points of phishing recall over the control and pays 0.13 points more false alarms on the test split. Its false alarms also rise on crawled legitimate pages (1.98 % to 2.45 %) and on official UAE pages (3.18 % to 4.53 %). The judge's allowlist hides the official-page figure for the 77 listed institutions, but not for institutions outside the list. The trainer chose a threshold of 0.72 for the candidate (0.785 for the control), so part of the trade-off comes from the threshold, not only from the patterns. The 975 synthetic URLs are caught by all three models, which is circular and says nothing about real accuracy.
 
@@ -383,13 +383,13 @@ Limits. The variants are generated, not real attacks: they test coverage of the 
 
 ## Results (24 Nov, late; each run once): scale check, impersonation categories, zero-shot second opinion, explanation change
 
-### Scale check: 1,000,000 URLs through the offline judge (project/data/scale-report.json)
+### Scale check: 1,000,000 URLs through the offline judge (data/scale-report.json)
 - Input: 500,000 URLs from the Phishing.Database active list, and 500,000 Tranco top-list domains as https addresses.
 - Result: 0 errors; 627 s on this laptop; 0.63 ms per URL; peak memory 496 MB; no network.
 - Verdicts, all: phishing 471,581; suspicious 20,528; legitimate 507,887; invalid 4.
 - Reading. This is a speed and stability test. Its counts are not accuracy. The Phishing.Database half overlaps our training sample, so its 91.4 % phishing share is not a held-out estimate. The popular half is not labelled: 14,668 of 500,000 domains (2.9 %) got a phishing verdict and 4,931 (1.0 %) got a suspicious verdict. Those flags need labels before any false-alarm figure is stated.
 
-### Impersonation categories: 60 listed names, three variants each, seed 20261124 (project/data/impersonation-report.json)
+### Impersonation categories: 60 listed names, three variants each, seed 20261124 (data/impersonation-report.json)
 Development categories (rules and explanation written with these in view). Held-out categories (not in any rule; words checked before the run).
 
 | Category | Variants | Strict | Cautious | Names of 5+ letters, strict |
@@ -419,7 +419,7 @@ Reading.
 - The 2.73 % on L2 is the same order as the 2.9 % in the scale run. Both populations are unlabelled, so the figures show how often the judge gives a phishing verdict on those domains, not how often it is wrong.
 - Limits. The variants are generated, not real attacks. 60 of the 77 listed names were used: 17 have three-label domains (for example x.gov.ae) and were excluded. The held-out words were checked against the rule code before the run.
 
-### Zero-shot second opinion on SmishX: qwen/qwen3.8-27b through Groq, not Claude (project/data/llm-smishx-report.json)
+### Zero-shot second opinion on SmishX: qwen/qwen3.8-27b through Groq, not Claude (data/llm-smishx-report.json)
 - Positives (smishing) 259; negatives (legitimate) 622.
 - Recall 93.8 % (95 % interval 90.2 to 96.2 %). False alarms 7.6 % (5.7 to 9.9 %).
 - 9 requests failed and 10 answers could not be read. Both count as "not flagged", as the protocol says.
@@ -697,7 +697,7 @@ Decision, by the rule written before the run: A. B did not qualify (false alarms
 
 ## Result: live CT watch, run 4, with tiled logs (25 Nov; 10.3 minutes; run once after amendment 4)
 
-data/ct-watch-report-run4.json. 50 logs read: 33 tiled, 17 RFC 6962.
+data/ct-history/ct-watch-report-run4.json. 50 logs read: 33 tiled, 17 RFC 6962.
 
 - Coverage of new log entries: 63.2 % (736,333 of 1,164,667), against 32 to 39 % in runs 1 to 3. Tiled logs 81.7 % (703,220 of 860,695); RFC 6962 logs 10.9 % (33,113 of 303,972: Sectigo, DigiCert and TrustAsia answer slowly, and one Cloudflare log grew by about 880,000 entries in minutes).
 - 1,190 certificates read per second; 0 parse errors; the direct DER reader matched Node's X.509 parser on all 300 certificates checked.

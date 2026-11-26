@@ -12,8 +12,9 @@
 
 | | |
 |---|---|
+| **Police dashboard** | **[Open the live police dashboard](https://vetoai.mubadara.app/police)** · Officer code required. [Walk through a case](#police-dashboard). |
 | **Live site** | **https://milki0069.github.io/veto-submission/** · download the Android app, open the web app, get the extension |
-| **Web app (no install)** | https://milki0069.github.io/veto-submission/app/ · the same Veto screens in any browser |
+| **Resident app (no install)** | https://milki0069.github.io/veto-submission/app/ · the same Veto screens in any browser |
 | **Test it in the browser** | https://milki0069.github.io/veto-submission/check/ · paste a message, a link or a whole list of links; same engine |
 | **Demo video (1 minute)** | [watch on Google Drive](https://drive.google.com/file/d/1m2Z7aZArLyuuMnj-L3TL_YaR12q4Xx1p/view?usp=sharing); the source and the real screenshots it uses are in [`tools/video-render.js`](tools/video-render.js) and [`docs/img/demo/`](docs/img/demo/) |
 | **Android app** | [download veto.apk](https://github.com/MILKI0069/veto-submission/releases/latest/download/veto.apk) (also [`release/veto.apk`](release/veto.apk); source in [`android/`](android/)) |
@@ -25,8 +26,8 @@
 
 ## The problem and our solution
 
-**The problem.** 56 % of UAE residents report at least one fraud attempt a month (UAE Cyber Security Council × TRENDS study,
-[Gulf News](https://gulfnews.com/business/banking/over-50-of-uae-residents-report-being-targeted-by-one-financial-fraud-a-month-1.500064786)).
+**The problem.** In a 2024 survey, 56 % of UAE residents reported at least one fraud attempt a month (UAE Cyber Security Council × TRENDS study,
+[Emirates News Agency](https://www.wam.ae/en/article/b6f93te-2024-state-scams-uae-survey-reveals-65-scam)).
 The scams copy everything a victim trusts: the logo, the sender name, the website, even the voice on the phone. Blocklists only
 know a fake site after someone has been hurt, and most checkers only help people who already suspect something and stop to paste it.
 
@@ -64,7 +65,7 @@ The online layer (following redirects, domain age, phishing feeds) and the AI se
 | A second phishing feed, domains never in training | **89.0 %** of 292,437 URLs caught | [`data/unseen-report.json`](data/unseen-report.json) |
 | Scam SMS, 881 labelled texts, nested cross-validation | **96.9 %** caught (251 of 259), **2.4 %** false alarms | [`data/sms-cv-report.json`](data/sms-cv-report.json) |
 | Look-alikes of UAE brands (ADNOC, Emaar, Property Finder ...) | **65.0 %** caught, up from 20.1 % after the UAE brand watchlist, with no rise in false alarms beyond 0.05 points | [`data/uae-watch-B.json`](data/uae-watch-B.json) |
-| New certificates read live from 50 public certificate logs | **1,190 per second**, a median **17 s** after logging | [`data/ct-watch-report-run4.json`](data/ct-watch-report-run4.json) |
+| New certificates read live from 50 public certificate logs | **1,190 per second**, a median **17 s** after logging | [`data/ct-history/ct-watch-report-run4.json`](data/ct-history/ct-watch-report-run4.json) |
 | Speed | about **1 ms per link**, offline; 20,000 links in one run | [`docs/RUN_LOG.md`](docs/RUN_LOG.md) |
 | Automated tests | **153 of 153** pass, plus 9 of 9 browser checks of the extension | `npm test`, `npm run test:extension` |
 
@@ -80,7 +81,7 @@ that no domain is in both.
 | Criterion (weight) | What Veto delivers | Proof |
 |---|---|---|
 | **Detection accuracy (30 %)** | **98.3 % precision, 94.5 % recall** on **33,766** held-out links; **96.9 %** of scam SMS caught at **2.4 %** false alarms; **0 of 2,231** official UAE pages wrongly flagged | [`data/judge-report.json`](data/judge-report.json), [`data/sms-cv-report.json`](data/sms-cv-report.json) |
-| **Early detection and coverage (25 %)** | new fake sites seen in public certificate logs a median **17 s** after they appear; a live look-alike hunt found **568** registered look-alike domains of UAE institutions, **248** of them live; **about 70,000** new domains screened a day; SMS, WhatsApp, Telegram, calls, links, e-mail, websites, QR codes, search and Maps; any language | [`data/ct-watch-report-run4.json`](data/ct-watch-report-run4.json) |
+| **Early detection and coverage (25 %)** | new fake sites seen in public certificate logs a median **17 s** after they appear; a live look-alike hunt found **568** registered look-alike domains of UAE institutions, **248** of them live; **about 70,000** new domains screened a day; SMS, WhatsApp, Telegram, calls, links, e-mail, websites, QR codes, search and Maps; any language | [`data/ct-history/ct-watch-report-run4.json`](data/ct-history/ct-watch-report-run4.json) |
 | **Explainability and actionability (20 %)** | every warning names the rule the scam breaks, in the institution's own words, gives the real number and offers Report, Warn family and the police number; Kiki shows how serious it is at a glance | [Every feature](#every-feature), [Kiki](#kiki-a-warning-anyone-can-read) |
 | **UAE relevance and innovation (15 %)** | the published rules of **77 UAE institutions**, **34 UAE brands** watched for look-alikes, Arabic and English; it reads messages by itself, with no copying or pasting | [What sets Veto apart](#what-sets-veto-apart) |
 | **Feasibility and presentation (10 %)** | live today: Android app, browser extension, web app and link check, one shared engine, **fully offline**, **153** automated tests, no paid service needed | [live site](https://milki0069.github.io/veto-submission/) |
@@ -370,13 +371,42 @@ Scammers aim at the most trusting person in a family: an elderly parent, a busy 
 
 Status: designed, not built yet. It needs opt-in family linking, and a review of community reports so that nobody can get a real number blocked with false reports.
 
+## Police dashboard
+
+1. Open the [live police dashboard](https://vetoai.mubadara.app/police) and enter the officer code provided by the team. The workspace supports English and Arabic.
+2. In **Overview**, select **Review** beside a case under **Needs an officer**. Inspect the risk score, the reasons for the flag and the available screenshot.
+3. Select **Evidence ZIP** to download the case report and its integrity manifest. Downloading the evidence leaves the officer’s decision pending until an officer records one.
+
+The deployed watchlist includes 34 additional UAE brands. The separate brand stress test covered 46 UAE brands across 452 generated look-alikes ([research log](docs/RESEARCH_LOG.md)).
+
+**Officer sign-off.** Veto collects and explains; it never sends a takedown request by itself. An officer opens a
+case, reads the evidence and records *approve*, *reject* or *needs more information* with a name and a note. Every
+decision is appended to a hash-chained log (`var/audit.jsonl`): each entry carries the SHA-256 of the entry before
+it, so a changed or removed line shows. The takedown pack and the evidence ZIP carry the decision.
+
+**Keeping the case file across restarts.** Cases, X-ray pictures, the sign-off log and the hunt state are written
+to `var/`. On a host whose disk is wiped at every restart, set `VETO_STORE_URL`, `VETO_STORE_KEY` and
+`VETO_STORE_SECRET` (see `.env.example`) and run `db/store.sql` once in a Postgres project with a REST API
+(Supabase). Every write is then also sent to the database, and `var/` is rebuilt from it at start-up
+(`server/store.js`). The tables are not exposed by the API: the only way in is five functions that check the
+secret, and a sign-off entry can be inserted once and never changed. `GET /api/store` says which mode is active.
+
+**Access.** On the Veto server itself (localhost) the dashboard is open. When Veto is hosted, set
+`VETO_CONSOLE_TOKEN` to an access code of 8 characters or more: officers sign in with it and get a 12-hour, signed,
+HttpOnly session cookie; sign-in attempts are rate limited. This is a pilot gate. A police deployment would sit
+behind the force's own single sign-on.
+
+**Hosting.** The `Dockerfile` runs the whole app (with the browser for the Link X-ray). Health check: `/healthz`.
+Every setting is listed in `.env.example`. Live Search and Maps hunts need one key: `SERPER_API_KEY`, or Brave plus
+Google Places, or SerpApi (the only one that also returns paid ads).
+
 ## How to build and run
 
 ```bash
 npm install
-npm test                                   # 153 tests
+npm test                                   # 169 tests
 npm run judge -- your-list.csv             # judge a list of URLs offline; add a label column for precision and recall
-npm start                                  # web console, URL Judge page and police console on http://localhost:8787
+npm start                                  # the web app on http://localhost:8787 (police dashboard)
 npm run build:extension                    # then load build/extension unpacked in edge://extensions or chrome://extensions
 npm run android                            # builds the Android app (release/veto.apk is prebuilt)
 ```
@@ -395,7 +425,7 @@ The URL list can be one URL per line or a CSV with a `url` column and an optiona
 | `web/`, `web-demo/` | the web console and the public live check |
 | `data/` | the rulebook, the models and every measured report |
 | `tools/` | training, evaluation, the certificate watch, builds and the demo video |
-| `tests/` | 153 automated tests |
+| `tests/` | 169 automated tests |
 | `docs/` | the research log, the claims ledger, the technical report and the run log |
 
 Full methodology, every experiment and its protocol: [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md) and

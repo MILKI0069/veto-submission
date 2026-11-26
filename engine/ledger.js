@@ -9,13 +9,45 @@
 
 import { INSTITUTIONS } from '../data/institutions.js';
 import { findInstitutions } from './extract.js';
-import { matchForm } from './normalize.js';
+import { foldDigits, matchForm } from './normalize.js';
 import { analyzeUrl } from './url.js';
 import { sameNumber, exactShort, countryOf } from './context.js';
 
 const sig = (id, w, en, ar) => ({ id, w, en, ar });
 const isUaeMobile = n => /^(?:\+?971|00971|0)?5\d{8}$/.test(String(n || '').replace(/[\s()-]/g, ''));
 const shown = inst => (inst.phones || []).map(p => p.d).join(', ');
+
+function uaeLocalPhone(number) {
+  return foldDigits(String(number || '')).replace(/[\s()-]/g, '').replace(/^(?:00971|\+971|971)/, '0');
+}
+
+export function historicalPhoneAlert(number) {
+  if (uaeLocalPhone(number) === '0547596133') {
+    return {
+      ...sig('dfsa_historical_contact', 0.8,
+        'DFSA reported that Sidra Capital impersonators used this number in a loan scam. Current ownership is unverified.',
+        'أفادت سلطة دبي للخدمات المالية بأن منتحلي صفة سدرة المالية استخدموا هذا الرقم في عملية احتيال بالقروض. لم تُتحقق الملكية الحالية.'),
+      source: { en: 'DFSA alert · 12 January 2026', ar: 'تنبيه سلطة دبي للخدمات المالية · ١٢ يناير ٢٠٢٦', url: 'https://www.dfsa.ae/alerts/dfsa-licensed-firm-impersonated-scam-1' }
+    };
+  }
+  return null;
+}
+
+// Scope reviewed guides to the article, its advertised contact and its title.
+// A bank-support claim, a look-alike URL or a different phone remains subject to the usual checks.
+export function guidePublisher(listing) {
+  const title = String(listing.name || '').trim();
+  if (!/^Wio Bank Business Account UAE(?:\s*\|\s*EmirHub)?$/i.test(title)) return null;
+  if (!sameNumber(listing.phone, '+971 50 496 3962') || listing.whatsapp) return null;
+  if (/customer (?:care|support|service)|helpline|official support|خدمة العملاء|الدعم الرسمي/i.test(listing.text || '')) return null;
+  const address = String(listing.website || '').trim();
+  if (!/^(?:https:\/\/)?(?:www\.)?emirhub\.ae\/banking\/wio\/?$/i.test(address)) return null;
+  return {
+    en: 'EmirHub publishes this number for its account-opening consultancy. Contact Wio directly for bank support.',
+    ar: 'تنشر إمير هب هذا الرقم لاستشارات فتح الحسابات. تواصل مع بنك ويو مباشرةً للحصول على الدعم المصرفي.',
+    source: { en: 'EmirHub contact details', ar: 'بيانات التواصل مع إمير هب', url: 'https://www.emirhub.ae/contact-us/' }
+  };
+}
 
 /** Which institution publishes this number (or null). */
 export function numberOwner(number) {
@@ -24,12 +56,16 @@ export function numberOwner(number) {
 
 /**
  * @param {{name?:string, phone?:string, website?:string, whatsapp?:string, text?:string}} listing
- * @returns {{inst, verdict:'official'|'fake'|'suspicious'|'unknown', signals, positives, official}}
+ * @returns {{inst, verdict:'official'|'fake'|'suspicious'|'unknown'|'guide', signals, positives, official}}
  */
 export function checkListing(listing = {}) {
   const name = String(listing.name || '').trim();
   const text = `${name} ${listing.text || ''}`.trim();
   const signals = [], positives = [];
+  const publisher = guidePublisher(listing);
+  if (publisher) return { inst: null, verdict: 'guide', risk: 0, signals, positives: [publisher], official: null };
+  const historical = historicalPhoneAlert(listing.phone);
+  if (historical) signals.push(historical);
   // who does the listing CLAIM to be? its name first, else what its website or number belongs to
   let inst = text ? (findInstitutions(matchForm(text), text).find(c => !c.inst.generic) || {}).inst || null : null;
   const site = listing.website ? analyzeUrl(listing.website) : null;
@@ -37,9 +73,19 @@ export function checkListing(listing = {}) {
   if (!inst && site?.official) inst = INSTITUTIONS.find(i => i.id === site.official.id) || null;
   if (!inst && (site?.lookalike?.inst || site?.brand?.inst)) inst = site.lookalike?.inst || site.brand?.inst;
 
+  // The ministry published the displayed digits only, without a country code.
+  if (inst?.id === 'moi' && foldDigits(String(listing.phone || '')).replace(/[\s()-]/g, '') === '70614213') {
+    signals.push({
+      ...sig('moi_reported_caller', 0.8,
+        'The UAE Ministry of Interior warned about impersonation calls displaying these digits. Current ownership is unverified.',
+        'حذرت وزارة الداخلية الإماراتية من مكالمات انتحال الصفة التي يظهر فيها هذا الرقم. لم يتم التحقق من ملكيته الحالية.'),
+      source: { en: 'UAE Ministry of Interior · 1 March 2026', ar: 'وزارة الداخلية الإماراتية · ١ مارس ٢٠٢٦', url: 'https://x.com/moiuae/status/2028040738475483569' }
+    });
+  }
+
   if (listing.phone) {
     if (inst && owner && owner.id === inst.id) positives.push({ id: 'phone_official', en: `${listing.phone} is ${inst.name.en}'s published number.`, ar: `${listing.phone} هو الرقم المعلن لـ${inst.name.ar}.` });
-    else if (inst && inst.phones?.length) {
+    else if (inst && inst.phones?.length && !signals.some(s => s.source)) {
       const mobile = isUaeMobile(listing.phone);
       const c = countryOf(listing.phone);
       const foreign = c && c.code !== 'AE' && c.code !== '??';
@@ -50,6 +96,10 @@ export function checkListing(listing = {}) {
     } else if (inst && owner && owner.id !== inst.id) {
       signals.push(sig('listing_phone_other', 0.6, `The listing says “${inst.name.en}” but the number belongs to ${owner.name.en}.`, `الإدراج يقول «${inst.name.ar}» لكن الرقم يخص ${owner.name.ar}.`));
     }
+  }
+  if (uaeLocalPhone(listing.phone) === '043161700' && (!inst || inst.id === 'nbk')) {
+    positives.push({ id: 'nbk_published_contact', en: 'NBK publishes this UAE number and warns that callers can spoof it. Dial it independently to reach the bank.', ar: 'ينشر بنك الكويت الوطني هذا الرقم في الإمارات ويحذر من انتحال هوية المتصل. اتصل بالرقم بنفسك للتواصل مع البنك.',
+      source: { en: 'NBK UAE · Banking awareness', ar: 'بنك الكويت الوطني · التوعية المصرفية', url: 'https://nbk.com/uae/services-and-support/banking-awareness/faqs.html' } });
   }
   if (site) {
     if (site.official && (!inst || site.official.id === inst.id)) positives.push({ id: 'site_official', en: `${site.host} is an official ${site.official.name.en} website.`, ar: `${site.host} موقع رسمي لـ${site.official.name.ar}.` });

@@ -8,6 +8,7 @@ ENV NODE_ENV=production PORT=8787 VETO_DEMO=1
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev || npm install --omit=dev
 COPY . .
+RUN mkdir -p /app/var && chown -R pwuser:pwuser /app/var
 USER pwuser
 EXPOSE 8787
 CMD ["node", "server/server.js"]

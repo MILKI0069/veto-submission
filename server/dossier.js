@@ -48,7 +48,11 @@ export function reportTexts(rec) {
 const row = (k, v) => v ? `<tr><th>${esc(k)}</th><td>${v}</td></tr>` : '';
 const code = v => `<code>${esc(v)}</code>`;
 
-export function dossierHtml(rec, { campaign = null, shot = null } = {}) {
+const REVIEW_TEXT = { approved: 'Approved for takedown requests', rejected: 'Rejected: no action', needs_info: 'Needs more information' };
+export function dossierHtml(rec, { campaign = null, shot = null, review = null } = {}) {
+  const signoff = review
+    ? `<p class="signoff ${esc(review.decision)}"><b>Officer sign-off: ${esc(REVIEW_TEXT[review.decision] || review.decision)}</b> · ${esc(review.officer)} · ${esc(review.t.slice(0, 16).replace('T', ' '))} UTC${review.note ? ` · “${esc(review.note)}”` : ''}<br><span class="muted">Audit entry ${review.n} · SHA-256 ${esc(review.hash)}</span></p>`
+    : '<p class="signoff pending"><b>Officer sign-off: pending.</b> No takedown request may be sent from this pack until an officer has reviewed and approved it.</p>';
   const b = brandOf(rec);
   const t = reportTexts(rec);
   const sigs = (rec.signals || []).map(s => `<li><b>${Math.round(s.w * 100)}%</b> ${esc(s.en)}<div class="ar" dir="rtl" lang="ar">${esc(s.ar)}</div></li>`).join('');
@@ -62,6 +66,7 @@ export function dossierHtml(rec, { campaign = null, shot = null } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Veto takedown pack · ${esc(rec.registrable || rec.finalHost)}</title>
 <style>
+.signoff{border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px;border:1px solid #fedf89;background:#fffaeb;color:#7a2e0e}.signoff.approved{border-color:#abefc6;background:#ecfdf3;color:#05603a}.signoff.rejected{border-color:#d0d5dd;background:#f2f4f7;color:#344054}.signoff .muted{font-size:11.5px;word-break:break-all}
 :root{--ink:#0d1b2e;--muted:#4a5a72;--line:#d3ddeb;--bad:#a3201a;--bad-bg:#fef3f2;--blue:#1849a9}
 body{font:14px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--ink);background:#f3f6fb;margin:0;padding:24px}
 main{max-width:920px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px}
@@ -78,6 +83,7 @@ textarea{width:100%;font:12.5px Consolas,monospace;border:1px solid var(--line);
 </style></head><body><main>
 <p class="muted">Veto.ai takedown pack · case ${esc(rec.id)} · generated ${esc(new Date().toISOString().slice(0, 16).replace('T', ' '))} UTC</p>
 <h1>${esc(rec.registrable || rec.finalHost)} <span class="verdict">${esc(rec.verdict)} · ${Math.round((rec.risk || 0) * 100)}%</span></h1>
+${signoff}
 <p>Impersonates <b>${esc(b.name)}</b>${b.domains ? ` (official: ${esc(b.domains)})` : ''}. ${rec.intent ? esc(rec.intent.en) : ''}</p>
 <div class="grid"><div>
 <h2>Evidence</h2><table>
@@ -147,9 +153,9 @@ export function shotDataUrl(file) {
 /** Evidence bundle for police and takedown: the pack as PDF (rendered by the X-ray's own browser) and HTML, the page
  *  picture, the STIX 2.1 file, the case record, and a manifest with the SHA-256 of every file and the UTC time, so
  *  anyone can check later that nothing was changed. */
-export async function evidenceBundle(rec, { campaign = null, shotFile = null } = {}) {
+export async function evidenceBundle(rec, { campaign = null, shotFile = null, review = null } = {}) {
   const shot = shotFile && fs.existsSync(shotFile) ? fs.readFileSync(shotFile) : null;
-  const html = dossierHtml(rec, { campaign, shot: shot ? 'data:image/jpeg;base64,' + shot.toString('base64') : null });
+  const html = dossierHtml(rec, { campaign, review, shot: shot ? 'data:image/jpeg;base64,' + shot.toString('base64') : null });
   let pdf = null;
   try {
     const { getBrowser } = await import('./xray.js');
@@ -167,7 +173,8 @@ export async function evidenceBundle(rec, { campaign = null, shotFile = null } =
     ...(shot ? [{ name: 'page-screenshot.jpg', data: shot }] : []),
     { name: 'case.json', data: JSON.stringify(rec, null, 1) },
     { name: 'stix-2.1.json', data: JSON.stringify(stixBundle(rec, { campaign }), null, 1) },
-    ...(campaign ? [{ name: 'campaign.json', data: JSON.stringify(campaign, null, 1) }] : [])
+    ...(campaign ? [{ name: 'campaign.json', data: JSON.stringify(campaign, null, 1) }] : []),
+    { name: 'officer-signoff.json', data: JSON.stringify(review || { decision: 'pending', note: 'No officer has reviewed this case yet.' }, null, 1) }
   ];
   const now = new Date();
   const crypto = await import('node:crypto');

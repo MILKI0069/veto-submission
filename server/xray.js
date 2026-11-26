@@ -219,6 +219,13 @@ export async function xray(rawUrl, { demoHosts = false, ai = null } = {}) {
     if (!chain.length) chain.push(u.href);
     const finalUrl = page.url() && page.url() !== 'about:blank' && !page.url().startsWith('chrome-error:') ? page.url() : chain[chain.length - 1];
 
+    const browserStatus = resp?.status() ?? null;
+    let redirectObservation = null;
+    if (browserStatus === 403 || !resp) {
+      const probe = await fetchBytes(u.href, { demoHosts, headersOnly: true, timeout: 5000 }).catch(() => null);
+      redirectObservation = { status: probe?.status ?? null, destination: probe?.destination ?? null };
+    }
+
     let facts = { inputs: [], forms: [], text: '', title: '', obf: false, iframes: 0, metaRefresh: '', links: [], imgs: '', inline: '', events: [], icons: [], logoImgs: [], html: '', skel: null };
     try {
       facts = await page.evaluate(() => {
@@ -500,7 +507,7 @@ export async function xray(rawUrl, { demoHosts = false, ai = null } = {}) {
     const verdict = official && !downloads.length ? 'official' : !proof.length && risk >= 0.85 ? 'suspicious' : risk >= 0.85 ? 'dangerous' : risk >= 0.55 ? 'suspicious' : risk >= 0.25 ? 'caution' : 'no_signals';
     const result = {
       ok: true, input: u.href, finalUrl, finalHost: fin.hostUnicode || fin.host, official: official ? { id: official.id, name: official.name } : null,
-      chain, title: facts.title, screenshot, verdict, risk: +shownRisk.toFixed(3), signals: S.sort((a, b) => b.w - a.w), armed: proof.length > 0, proof,
+      browserStatus, redirectObservation, chain, title: facts.title, screenshot, verdict, risk: +shownRisk.toFixed(3), signals: S.sort((a, b) => b.w - a.w), armed: proof.length > 0, proof,
       intent,
       trap: { ...trapInfo, caught: exfil.map(({ kind, host, en, ar, bot, method }) => ({ kind, host, en, ar, bot, method })), blockedPosts: trap.otherPosts },
       codeSinks,
